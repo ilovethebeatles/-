@@ -18,7 +18,6 @@ public class CachedQuery implements CanEstimateSize {
   public final Object key;
   public final Query query;
   public final boolean isFunction;
-
   private int executeCount;
 
   public CachedQuery(Object key, Query query, boolean isFunction) {
