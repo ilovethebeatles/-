@@ -1558,7 +1558,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, subquery);
         }
-        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
+        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags, true);
       }
     }
   }
