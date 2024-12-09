@@ -2048,6 +2048,119 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     sendExecute(query, portal, rows);
   }
 
+  private void sendOneQuery(SimpleQuery query, SimpleParameterList params, int maxRows,
+      int fetchSize, int flags, boolean fromComposite) throws IOException {
+    boolean asSimple = (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0;
+    if (asSimple) {
+      assert (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) == 0
+          : "Simple mode does not support describe requests. sql = " + query.getNativeSql()
+          + ", flags = " + flags;
+      sendSimpleQuery(query, params);
+      return;
+    }
+
+    assert !query.getNativeQuery().multiStatement
+        : "Queries that might contain ; must be executed with QueryExecutor.QUERY_EXECUTE_AS_SIMPLE mode. "
+        + "Given query is " + query.getNativeSql();
+
+    // Per https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
+    // A Bind message can use the unnamed prepared statement to create a named portal.
+    // If the Bind is successful, an Execute message can reference that named portal until either
+    //      the end of the current transaction
+    //   or the named portal is explicitly destroyed
+
+    boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
+    boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
+    boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
+    // extended queries always use a portal
+    // the usePortal flag controls whether or not we use a *named* portal
+    boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta
+        && fetchSize > 0 && !describeOnly;
+    boolean oneShot = false;
+    boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
+    boolean forceDescribePortal = (flags & QUERY_FORCE_DESCRIBE_PORTAL) != 0;
+
+    // Work out how many rows to fetch in this pass.
+
+    int rows;
+    if (noResults) {
+      rows = 1; // We're discarding any results anyway, so limit data transfer to a minimum
+    } else if (!usePortal) {
+      rows = maxRows; // Not using a portal -- fetchSize is irrelevant
+    } else if (maxRows != 0 && fetchSize > maxRows) {
+      // fetchSize > maxRows, use maxRows (nb: fetchSize cannot be 0 if usePortal == true)
+      rows = maxRows;
+    } else {
+      rows = fetchSize; // maxRows > fetchSize
+    }
+
+    sendParse(query, params, oneShot);
+
+    // Must do this after sendParse to pick up any changes to the
+    // query's state.
+    //
+    boolean queryHasUnknown = query.hasUnresolvedTypes();
+    boolean paramsHasUnknown = params.hasUnresolvedTypes();
+
+    boolean describeStatement = describeOnly
+        || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
+
+    if (!describeStatement && paramsHasUnknown && !queryHasUnknown) {
+      int[] queryOIDs = castNonNull(query.getPrepareTypes());
+      int[] paramOIDs = params.getTypeOIDs();
+      for (int i = 0; i < paramOIDs.length; i++) {
+        // Only supply type information when there isn't any
+        // already, don't arbitrarily overwrite user supplied
+        // type information.
+        if (paramOIDs[i] == Oid.UNSPECIFIED) {
+          params.setResolvedType(i + 1, queryOIDs[i]);
+        }
+      }
+    }
+
+    if (describeStatement) {
+      sendDescribeStatement(query, params, describeOnly);
+      if (describeOnly) {
+        return;
+      }
+    }
+
+    // Construct a new portal if needed.
+    Portal portal = null;
+    if (usePortal) {
+      String portalName = "C_" + (nextUniqueID++);
+      portal = new Portal(query, portalName);
+    }
+
+    sendBind(query, params, portal, noBinaryTransfer);
+
+    // A statement describe will also output a RowDescription,
+    // so don't reissue it here if we've already done so.
+    //
+    if (!noMeta && !describeStatement) {
+      /*
+       * don't send describe if we already have cached the row description from previous executions
+       *
+       * XXX Clearing the fields / unpreparing the query (in sendParse) is incorrect, see bug #267.
+       * We might clear the cached fields in a later execution of this query if the bind parameter
+       * types change, but we're assuming here that they'll still be valid when we come to process
+       * the results of this query, so we don't send a new describe here. We re-describe after the
+       * fields are cleared, but the result of that gets processed after processing the results from
+       * earlier executions that we didn't describe because we didn't think we had to.
+       *
+       * To work around this, force a Describe at each execution in batches where this can be a
+       * problem. It won't cause more round trips so the performance impact is low, and it'll ensure
+       * that the field information available when we decoded the results. This is undeniably a
+       * hack, but there aren't many good alternatives.
+       */
+      if (!query.isPortalDescribed() || forceDescribePortal) {
+        sendDescribePortal(query, portal);
+      }
+    }
+
+    sendExecute(query, portal, rows);
+  }
+
   private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
     String nativeSql = query.toString(params);
 

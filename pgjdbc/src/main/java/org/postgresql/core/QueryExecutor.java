@@ -246,6 +246,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   CachedQuery borrowQueryByKey(Object key) throws SQLException;
 
+  @Nullable CachedQuery getQuery(String sql) throws SQLException;
+
   CachedQuery borrowQuery(String sql) throws SQLException;
 
   CachedQuery borrowCallableQuery(String sql) throws SQLException;

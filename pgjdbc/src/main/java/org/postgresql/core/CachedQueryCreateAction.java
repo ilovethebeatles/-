@@ -7,10 +7,13 @@ package org.postgresql.core;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.core.v3.ProcessCompositeQuery;
+import org.postgresql.core.v3.SimpleQuery;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.LruCache;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,6 +41,24 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
       queryKey = null;
       parsedSql = (String) key;
     }
+    List<NativeQuery> queries = new ArrayList<>();
+    String[] sqlParts = ProcessCompositeQuery.processKey(parsedSql);
+    if(sqlParts.length > 1) {
+      for (String part : sqlParts) {
+        CachedQuery cachedSimpleQuery = this.queryExecutor.getQuery(part);
+        if(cachedSimpleQuery == null) {
+          cachedSimpleQuery = this.create(part);
+          for(int i = 0; i < 5; ++i) {
+            cachedSimpleQuery.increaseExecuteCount();
+          }
+          this.queryExecutor.releaseQuery(cachedSimpleQuery);
+        }
+        SimpleQuery simpleQuery = (SimpleQuery) cachedSimpleQuery.query;
+        queries.add(simpleQuery.getNativeQuery());
+      }
+      Query query = queryExecutor.wrap(queries);
+      return new CachedQuery(key, query, false);
+    }
     if (key instanceof String || castNonNull(queryKey).escapeProcessing) {
       parsedSql =
           Parser.replaceProcessing(parsedSql, true, queryExecutor.getStandardConformingStrings());
@@ -61,8 +82,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     } else {
       returningColumns = EMPTY_RETURNING;
     }
-
-    List<NativeQuery> queries = Parser.parseJdbcSql(parsedSql,
+    queries = Parser.parseJdbcSql(parsedSql,
         queryExecutor.getStandardConformingStrings(), isParameterized, splitStatements,
         queryExecutor.isReWriteBatchedInsertsEnabled(), queryExecutor.getQuoteReturningIdentifiers(),
         returningColumns

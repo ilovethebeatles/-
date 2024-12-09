@@ -30,7 +30,7 @@ import java.util.logging.Logger;
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
-class SimpleQuery implements Query {
+public class SimpleQuery implements Query {
   private static final Logger LOGGER = Logger.getLogger(SimpleQuery.class.getName());
 
   SimpleQuery(SimpleQuery src) {
@@ -328,7 +328,7 @@ class SimpleQuery implements Query {
     return 1;
   }
 
-  NativeQuery getNativeQuery() {
+  public NativeQuery getNativeQuery() {
     return nativeQuery;
   }
 
