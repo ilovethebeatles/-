@@ -1611,8 +1611,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     long t_1 = System.nanoTime();
-    long delta_t_1 = t_1 - startSendParseTime;
-    System.out.println("delta t_1: " + delta_t_1);
 
     byte[] encodedStatementName = query.getEncodedStatementName();
     String nativeSql = query.getNativeSql();
@@ -1663,6 +1661,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     long endSendParseTime = System.nanoTime();
     long delta = endSendParseTime - startSendParseTime;
     long delta_t_2 = endSendParseTime - t_1;
+    long delta_t_1 = t_1 - startSendParseTime;
+    System.out.println("delta t_1: " + delta_t_1);
     System.out.println("delta_t_2 " + delta_t_2 + " ns");
     System.out.println("SendParse took " + delta + " ns");
   }
