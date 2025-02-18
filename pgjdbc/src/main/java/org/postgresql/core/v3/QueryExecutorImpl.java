@@ -1580,7 +1580,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void sendParse(SimpleQuery query, SimpleParameterList params, boolean oneShot)
       throws IOException {
-    long startSendParseTime = System.nanoTime();
     // Already parsed, or we have a Parse pending and the types are right?
     int[] typeOIDs = params.getTypeOIDs();
     if (query.isPreparedFor(typeOIDs, deallocateEpoch)) {
@@ -1610,7 +1609,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       registerParsedQuery(query, statementName);
     }
 
-    long t_1 = System.nanoTime();
 
     byte[] encodedStatementName = query.getEncodedStatementName();
     String nativeSql = query.getNativeSql();
@@ -1658,13 +1656,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     pendingParseQueue.add(query);
-    long endSendParseTime = System.nanoTime();
-    long delta = endSendParseTime - startSendParseTime;
-    long delta_t_2 = endSendParseTime - t_1;
-    long delta_t_1 = t_1 - startSendParseTime;
-    System.out.println("delta t_1: " + delta_t_1);
-    System.out.println("delta_t_2 " + delta_t_2 + " ns");
-    System.out.println("SendParse took " + delta + " ns");
   }
 
   private void sendBind(SimpleQuery query, SimpleParameterList params, @Nullable Portal portal,
