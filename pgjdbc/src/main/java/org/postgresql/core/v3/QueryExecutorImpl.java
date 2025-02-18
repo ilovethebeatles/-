@@ -361,12 +361,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         try {
           handler = sendQueryPreamble(handler, flags);
           autosave = sendAutomaticSavepoint(query, flags);
-          long startTime = System.nanoTime();
           sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
               handler, null, adaptiveFetch);
-          long endTime = System.nanoTime();
-          long delta = endTime - startTime;
-          System.out.println(delta);
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
             // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
             // on its own
@@ -1584,7 +1580,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void sendParse(SimpleQuery query, SimpleParameterList params, boolean oneShot)
       throws IOException {
-    long startSendParseTime = System.nanoTime();
     // Already parsed, or we have a Parse pending and the types are right?
     int[] typeOIDs = params.getTypeOIDs();
     if (query.isPreparedFor(typeOIDs, deallocateEpoch)) {
@@ -1660,13 +1655,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     pendingParseQueue.add(query);
-    //long endSendParseTime = System.nanoTime();
-    //long delta = endSendParseTime - startSendParseTime;
-    //long delta_t_2 = endSendParseTime - t_1;
-    //long delta_t_1 = t_1 - startSendParseTime;
-    //System.out.println("delta_t_1: " + delta_t_1);
-    //System.out.println("delta_t_2: " + delta_t_2);
-    //System.out.println("SendParse time: " + delta + " ns");
   }
 
   private void sendBind(SimpleQuery query, SimpleParameterList params, @Nullable Portal portal,
