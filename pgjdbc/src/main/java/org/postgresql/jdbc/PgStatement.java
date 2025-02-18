@@ -431,11 +431,11 @@ public class PgStatement implements Statement, BaseStatement {
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       try {
-        long startTime = System.nanoTime();
+        //long startTime = System.nanoTime();
         executeInternal(cachedQuery, queryParameters, flags);
-        long endTime = System.nanoTime();
-        long delta = endTime - startTime;
-        System.out.println(delta + ",");
+        //long endTime = System.nanoTime();
+        //long delta = endTime - startTime;
+        //System.out.println(delta + ",");
       } catch (SQLException e) {
         // Don't retry composite queries as it might get partially executed
         if (cachedQuery.query.getSubqueries() != null
