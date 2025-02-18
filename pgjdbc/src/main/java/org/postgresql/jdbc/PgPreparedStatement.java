@@ -194,7 +194,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         execute(preparedQuery, preparedParameters, flags);
         long endTime = System.nanoTime();
         long delta = endTime - startTime;
-        System.out.print(delta + ", ");
+        System.out.println(delta + ",");
         checkClosed();
         return result != null && result.getResultSet() != null;
       }
