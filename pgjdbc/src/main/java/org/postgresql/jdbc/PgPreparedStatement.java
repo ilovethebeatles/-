@@ -177,7 +177,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   public boolean execute() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      return executeWithFlags(0);
+      long startTime = System.nanoTime();
+      boolean x = executeWithFlags(0);
+      long endTime = System.nanoTime();
+      long delta = endTime - startTime;
+      System.out.println(delta + ",");
+      return x;
     }
   }
 
