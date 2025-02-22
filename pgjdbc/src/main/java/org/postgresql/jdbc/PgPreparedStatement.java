@@ -177,12 +177,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   public boolean execute() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      long startTime = System.nanoTime();
-      boolean x = executeWithFlags(0);
-      long endTime = System.nanoTime();
-      long delta = endTime - startTime;
-      System.out.println(delta + ",");
-      return x;
+      //long startTime = System.nanoTime();
+      //boolean x = executeWithFlags(0);
+      //long endTime = System.nanoTime();
+      //long delta = endTime - startTime;
+      //System.out.println(delta + ",");
+      return executeWithFlags(0);
     }
   }
 
@@ -195,11 +195,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
           flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
         }
-//         long startTime = System.nanoTime();
+        //long startTime = System.nanoTime();
         execute(preparedQuery, preparedParameters, flags);
-//         long endTime = System.nanoTime();
-//         long delta = endTime - startTime;
-//         System.out.println(delta + ",");
+        //long endTime = System.nanoTime();
+        //long delta = endTime - startTime;
+        //System.out.println(delta + ",");
         checkClosed();
         return result != null && result.getResultSet() != null;
       }
