@@ -8,6 +8,7 @@ package org.postgresql.core;
 
 import org.postgresql.PGNotification;
 import org.postgresql.copy.CopyOperation;
+import org.postgresql.core.v3.SimpleQuery;
 import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
@@ -262,6 +263,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @return query object ready for execution by this query executor
    */
   Query wrap(List<NativeQuery> queries);
+
+  Query wrapComposite(SimpleQuery[] queries);
 
   /**
    * Prior to attempting to retrieve notifications, we need to pull any recently received

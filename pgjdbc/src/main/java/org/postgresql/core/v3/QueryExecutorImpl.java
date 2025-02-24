@@ -308,6 +308,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return new CompositeQuery(subqueries, offsets);
   }
 
+  @Override
+  public Query wrapComposite(SimpleQuery[] queries) {
+    int[] offsets = new int[queries.length];
+    int offset = 0;
+    for (int i = 0; i < queries.length; i++) {
+      NativeQuery nativeQuery = queries[i].getNativeQuery();
+      offsets[i] = offset;
+      offset += nativeQuery.bindPositions.length;
+    }
+
+    return new CompositeQuery(queries, offsets);
+  }
   //
   // Query execution
   //

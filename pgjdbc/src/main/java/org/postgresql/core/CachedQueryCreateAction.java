@@ -41,22 +41,20 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
       queryKey = null;
       parsedSql = (String) key;
     }
-    List<NativeQuery> queries = new ArrayList<>();
+
     String[] sqlParts = ProcessCompositeQuery.processKey(parsedSql);
+    List<NativeQuery> queries = new ArrayList<>();
     if(sqlParts.length > 1) {
-      for (String part : sqlParts) {
-        CachedQuery cachedSimpleQuery = this.queryExecutor.getQuery(part);
+      SimpleQuery[] subqueries = new SimpleQuery[sqlParts.length];
+      for (int idx = 0; idx < sqlParts.length; ++idx) {
+        CachedQuery cachedSimpleQuery = this.queryExecutor.getQuery(sqlParts[idx]);
         if(cachedSimpleQuery == null) {
-          cachedSimpleQuery = this.create(part);
-          for(int i = 0; i < 5; ++i) {
-            cachedSimpleQuery.increaseExecuteCount();
-          }
+          cachedSimpleQuery = this.create(sqlParts[idx]);
           this.queryExecutor.releaseQuery(cachedSimpleQuery);
         }
-        SimpleQuery simpleQuery = (SimpleQuery) cachedSimpleQuery.query;
-        queries.add(simpleQuery.getNativeQuery());
+        subqueries[idx] = (SimpleQuery) cachedSimpleQuery.query;
       }
-      Query query = queryExecutor.wrap(queries);
+      Query query = queryExecutor.wrapComposite(subqueries);
       return new CachedQuery(key, query, false);
     }
     if (key instanceof String || castNonNull(queryKey).escapeProcessing) {
