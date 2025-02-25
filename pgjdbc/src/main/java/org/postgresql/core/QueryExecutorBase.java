@@ -62,7 +62,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private @Nullable SQLWarning warnings;
   private final ArrayList<PGNotification> notifications = new ArrayList<>();
 
-  private final LruCache<Object, CachedQuery> statementCache;
+  public final LruCache<Object, CachedQuery> statementCache;
   private final CachedQueryCreateAction cachedQueryCreateAction;
 
   // For getParameterStatuses(), GUC_REPORT tracking

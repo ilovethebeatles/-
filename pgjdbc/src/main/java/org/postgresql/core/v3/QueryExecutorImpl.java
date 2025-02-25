@@ -12,29 +12,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.copy.CopyOut;
-import org.postgresql.core.CommandCompleteParser;
-import org.postgresql.core.Encoding;
-import org.postgresql.core.EncodingPredictor;
-import org.postgresql.core.Field;
-import org.postgresql.core.NativeQuery;
-import org.postgresql.core.Notification;
-import org.postgresql.core.Oid;
-import org.postgresql.core.PGBindException;
-import org.postgresql.core.PGStream;
-import org.postgresql.core.ParameterList;
-import org.postgresql.core.Parser;
-import org.postgresql.core.Query;
-import org.postgresql.core.QueryExecutor;
-import org.postgresql.core.QueryExecutorBase;
-import org.postgresql.core.ReplicationProtocol;
-import org.postgresql.core.ResultCursor;
-import org.postgresql.core.ResultHandler;
-import org.postgresql.core.ResultHandlerBase;
-import org.postgresql.core.ResultHandlerDelegate;
-import org.postgresql.core.SqlCommand;
-import org.postgresql.core.SqlCommandType;
-import org.postgresql.core.TransactionState;
-import org.postgresql.core.Tuple;
+import org.postgresql.core.*;
 import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
@@ -1597,6 +1575,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (query.isPreparedFor(typeOIDs, deallocateEpoch)) {
       return;
     }
+    CachedQuery cached = statementCache.get(query.getNativeSql());
+    if(cached != null) {
+      if(((SimpleQuery) cached.query).getStatementName() != null) {
+        return;
+      }
+    }
 
     // Clean up any existing statement, as we can't use it.
     query.unprepare();
@@ -1619,6 +1603,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       query.setStatementName(statementName, deallocateEpoch);
       query.setPrepareTypes(typeOIDs);
       registerParsedQuery(query, statementName);
+      if(cached != null) {
+        ((SimpleQuery) cached.query).setStatementName(statementName, deallocateEpoch);
+      }
     }
 
 
