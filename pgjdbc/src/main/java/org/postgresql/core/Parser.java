@@ -192,6 +192,7 @@ public class Parser {
                 bindPositions.clear();
               }
               nativeSql.setLength(0);
+              originalSql.setLength(0);
               isValuesFound = false;
               isCurrentReWriteCompatible = false;
               valuesParenthesisOpenPosition = -1;
