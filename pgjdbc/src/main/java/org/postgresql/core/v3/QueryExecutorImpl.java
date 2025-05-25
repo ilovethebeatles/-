@@ -12,6 +12,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.copy.CopyOut;
+import org.postgresql.core.CachedQuery;
 import org.postgresql.core.CommandCompleteParser;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
@@ -301,7 +302,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     for (int i = 0; i < queries.size(); i++) {
       NativeQuery nativeQuery = queries.get(i);
       offsets[i] = offset;
-      subqueries[i] = new SimpleQuery(nativeQuery, this, isColumnSanitiserDisabled());
+      CachedQuery cached = this.getQuery(nativeQuery.originalSql);
+      if (cached != null && cached.query instanceof SimpleQuery) {
+        subqueries[i] = (SimpleQuery) cached.query;
+      } else {
+        subqueries[i] = new SimpleQuery(nativeQuery, this, isColumnSanitiserDisabled());
+      }
       offset += nativeQuery.bindPositions.length;
     }
 
