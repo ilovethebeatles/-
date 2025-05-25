@@ -11,7 +11,9 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.LruCache;
 
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Creates an instance of {@link CachedQuery} for a given connection.
@@ -67,6 +69,16 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
         queryExecutor.isReWriteBatchedInsertsEnabled(), queryExecutor.getQuoteReturningIdentifiers(),
         returningColumns
         );
+    if (queries.size() > 1) {
+      Set<NativeQuery> uniqueQueries = new HashSet<>(queries);
+      for (NativeQuery query: uniqueQueries) {
+        CachedQuery cached = this.queryExecutor.getQuery(query.originalSql);
+        if (cached == null) {
+          cached = this.create(query.originalSql);
+          this.queryExecutor.releaseQuery(cached);
+        }
+      }
+    }
 
     Query query = queryExecutor.wrap(queries);
     return new CachedQuery(key, query, isFunction);
